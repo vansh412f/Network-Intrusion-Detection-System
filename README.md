@@ -37,7 +37,8 @@
 This project implements a full-stack, enterprise-grade Security Operations Center (SOC) dashboard that monitors network traffic in real-time to detect anomalous and malicious activity, specifically Distributed Denial of Service (DDoS) attacks.
 
 ### Key Features
-- 🧠 **99.85% Accurate ML:** Utilizes a highly optimized XGBoost Binary Classifier trained on the CIC-DDoS2019 dataset (evaluating 288,663 flows).
+
+- 🧠 **99.85% Accurate ML:** Utilizes a highly optimized XGBoost Binary Classifier trained on the CIC-DDoS2019 dataset (evaluating **421,959** cleansed network flows — 327,391 malicious DDoS patterns and 94,568 benign samples).
 - ⚡ **Real-Time Detection:** Employs a 2-second sliding window via Python's Scapy to capture live interface packets with near-zero latency.
 - 🖥️ **Live SOC Dashboard:** A modern, responsive React 19 interface using WebSockets (Socket.io) to instantly push Threat Alerts and Live Analytics to the analyst's screen.
 - 🔄 **Dual Operation Modes:** Run the sensor in Live Packet Sniffing (`real` mode) or generate synthetic ML flows for testing (`simulate` mode).
@@ -55,12 +56,12 @@ graph TD;
     subgraph Client-Side
         ReactDashboard["React SOC Dashboard (frontend)"]
     end
-    
+
     subgraph Server-Side
         NodeAPI["Node.js Express + Socket.io (backend)"]
         MongoDB[("MongoDB Atlas")]
     end
-    
+
     subgraph Network Edge
         PythonSensor["Python Scapy Sensor (sensor)"]
         MLModel["XGBoost ML Model"]
@@ -69,10 +70,10 @@ graph TD;
     PythonSensor -- "Live Traffic Stats (2s window)\n[REST POST]" --> NodeAPI
     PythonSensor -- "Network Flow Features" --> MLModel
     MLModel -- "Threat Confidence > 80%\n[REST POST]" --> NodeAPI
-    
+
     NodeAPI -- "Save Alert" --> MongoDB
     NodeAPI -- "LiveStats & ThreatDetected\n[WebSocket Push]" --> ReactDashboard
-    
+
     ReactDashboard -- "Fetch History\n[REST GET]" --> NodeAPI
     ReactDashboard -- "Submit Manual Features\n[REST POST]" --> NodeAPI
     NodeAPI -- "Spawn Inference Process" --> MLModel
@@ -82,7 +83,7 @@ graph TD;
 
 ## 🧠 Machine Learning Model
 
-The core intelligence behind NIDS is a highly accurate Machine Learning classifier trained to recognize the flow signatures of 11 different DDoS attack vectors.
+The core intelligence behind NIDS is a highly accurate Machine Learning classifier trained to recognize the flow signatures of different DDoS attack vectors.
 
 - **Algorithm:** XGBoost Binary Classifier (`XGBClassifier`)
 - **Dataset:** CIC-DDoS2019
@@ -91,6 +92,7 @@ The core intelligence behind NIDS is a highly accurate Machine Learning classifi
 - **Classes:** `0` (BENIGN) and `1` (MALICIOUS/DDoS)
 
 ### The 15 Extracted Network Features
+
 The Python sensor calculates these features locally before running inference to determine malicious probability.
 
 1. `Flow Duration` (Total duration in μs)
@@ -116,13 +118,17 @@ The Python sensor calculates these features locally before running inference to 
 The Python Sensor runs in two completely separate states depending on your environment capabilities. You assign this via the `--mode` flag.
 
 ### 🟢 Simulate Mode (Default / Docker Safe)
+
 Best for CI/CD, demonstrations, and Docker deployments without network host access.
+
 - **Mechanism:** Procedurally generates synthetic 15-feature network flows every 2 seconds. Injects malicious vectors automatically every 90-120 seconds.
 - **Requirements:** None. Completely safe.
 - **ML Engine:** Feeds synthetic vectors directly to the actual XGBoost `.pkl` model.
 
 ### 🔴 Real Mode (Live Packet Sniffing)
+
 Best for production deployment on network boundaries, NGINX servers, or personal testing.
+
 - **Mechanism:** Binds Scapy socket to an explicit Network Interface Card (NIC) and captures actual TCP/UDP/ICMP traffic leaving and entering your machine.
 - **Requirements:** Requires explicit OS Administrator/Root privileges (e.g., `sudo`). Requires accurate `.env` configuration of your `MY_IP` and `INTERFACE`.
 - **ML Engine:** Parses real captured bytes into ML vectors and evaluates authentic traffic.
@@ -134,39 +140,47 @@ Best for production deployment on network boundaries, NGINX servers, or personal
 Deploying the entire NIDS tech stack takes less than one command.
 
 ### Dependencies
+
 - Docker Desktop (Windows/Mac) or Docker Engine (Linux).
 - A free-tier [MongoDB Atlas](https://www.mongodb.com/atlas) Cluster URI.
 
 ### Step 1: Environment Setup
+
 Clone the repository and create the master `.env` file in the **root** folder.
+
 ```bash
 git clone https://github.com/your-repo/NIDS_ML.git
 cd NIDS_ML
 ```
 
 Create exactly this file (`.env`):
+
 ```ini
 # --- ROOT .ENV ---
 MONGO_URI=mongodb+srv://<admin>:<password>@<cluster>.mongodb.net/NIDS
 SENSOR_SECRET=super_secret_auth_key_123
 
 # IF YOU INTEND TO CHANGE `docker-compose.yml` TO USE REAL MODE:
-MY_IP=192.168.1.100  
-INTERFACE=Wi-Fi      
+MY_IP=192.168.1.100
+INTERFACE=Wi-Fi
 ```
 
 > **How to find your IP and Interface Name:**
+>
 > - **Windows:** Open Cmd/PowerShell and run `ipconfig`. Look for "IPv4 Address" and the adapter name (e.g., `Wi-Fi` or `Ethernet`).
 > - **Linux:** Run `ip addr` or `ifconfig`. Look for `inet` and the interface name (e.g., `eth0` or `wlan0`).
 > - **Mac:** Run `ifconfig`. Look for `en0` or `en1`.
 
 ### Step 2: Build and Deploy
+
 ```bash
 docker-compose up --build -d
 ```
-*Note: The first build will take ~3-8 minutes as Docker correctly compiles `libgomp1` and builds the `XGBoost` C++ backend inside the Debian container.*
+
+_Note: The first build will take ~3-8 minutes as Docker correctly compiles `libgomp1` and builds the `XGBoost` C++ backend inside the Debian container._
 
 ### Step 3: Access the SOC
+
 - **Live React Dashboard:** http://localhost:5173
 - **Node API:** http://localhost:3000
 - **Stop Containers:** `docker-compose down`
@@ -178,11 +192,13 @@ docker-compose up --build -d
 One of the most powerful aspects of this architecture is how effortlessly it can be integrated into a real-world application, such as an e-commerce website, to proactively block DDoS attacks or bad actors.
 
 ### How to Integrate NIDS into your Website
+
 1. **Deploy the Sensor:** Run the Python sensor on your active web server, reverse proxy, or load balancer (for example, your NGINX or Apache server).
 2. **Monitor the Edge Interface:** Set the sensor's `.env` configuration to listen to your public-facing network interface (e.g., `eth0`).
 3. **Trigger Automated Defense Mechanisms:** When the machine learning model flags a severe anomaly, you can configure the sensor to automatically trigger firewall rules to drop the malicious traffic instantly, keeping your site online.
 
 ### Architecture Example: Automated Blocking
+
 You can easily modify the `predict_and_alert` function within `sensor/sensor.py` to trigger a system firewall tool (like `iptables`) the moment a threat is detected.
 
 ```python
@@ -193,12 +209,13 @@ def predict_and_alert(source_ip, probability):
     if probability >= 80.0:
         # 1. Alert the SOC Dashboard
         send_alert(source_ip, probability)
-        
+
         # 2. AUTOMATICALLY BLOCK the attacker's IP at the OS Firewall
         print(f"🧱 Blocking IP {source_ip} via iptables...")
         subprocess.run(["sudo", "iptables", "-A", "INPUT", "-s", source_ip, "-j", "DROP"])
 ```
-*Note: For cloud architectures (AWS, Azure, Cloudflare), you can swap the `iptables` OS command with a simple HTTP request to your Cloud Provider's Web Application Firewall (WAF) API to ban the IP at the network edge.*
+
+_Note: For cloud architectures (AWS, Azure, Cloudflare), you can swap the `iptables` OS command with a simple HTTP request to your Cloud Provider's Web Application Firewall (WAF) API to ban the IP at the network edge._
 
 ---
 
@@ -207,6 +224,7 @@ def predict_and_alert(source_ip, probability):
 If you want to modify code without rebuilding containers, run all three services locally on your machine network. You will need Node.js 20+ and Python 3.11+.
 
 ### 1. Backend (Node.js API)
+
 ```bash
 cd backend
 npm install
@@ -216,14 +234,16 @@ npm run dev
 ```
 
 ### 2. Frontend (React SOC)
+
 ```bash
 cd frontend
 npm install
 npm run dev
-# Dashboard available on Port 5173 
+# Dashboard available on Port 5173
 ```
 
 ### 3. Sensor (Python Sniffer)
+
 ```bash
 cd sensor
 python -m venv .venv
@@ -250,6 +270,7 @@ python sensor.py --mode real
 The dashboard features a **"🎬 Demo"** button on the top right navigation bar. This uses an embedded YouTube iframe modal overlay allowing users to see a pre-recorded demonstration of the NIDS successfully capturing real network DDoS floods without leaving the SPA (Single Page Application).
 
 **To configure your demo video:**
+
 1. Upload your presentation video to YouTube and set it to **Unlisted**.
 2. Grab the 11-character Video ID from the link (e.g., `https://youtu.be/dQw4w9WgXcQ` -> `dQw4w9WgXcQ`).
 3. Open `frontend/src/components/DemoVideoModal.jsx`.
@@ -263,11 +284,13 @@ The dashboard features a **"🎬 Demo"** button on the top right navigation bar.
 An exhaustive breakdown of the project architecture and what each specific file does:
 
 ### ⚙️ Root Configuration
+
 - `docker-compose.yml` - Multi-service orchestrator. Networks `nids-frontend`, `nids-backend`, and `nids-sensor` together on an internal Docker bridge. Controls environment injection.
 - `.gitignore` - Centralized file keeping `node_modules`, standard `.env` secrets, and Python `__pycache__` out of version control.
 - `README.md` - (This file) Complete technical documentation and deployment guide.
 
 ### 🌐 Frontend (`/frontend`) HTML/JS/CSS logic built with Vite & React 19.
+
 - `Dockerfile.frontend` - Multi-stage build pulling `node:20-alpine`. Bakes `VITE_API_URL` during `npm run build` and runs a static HTTP server.
 - `package.json` - Declares React UI dependencies (`framer-motion`, `axios`, `recharts`, `socket.io-client`).
 - `vite.config.js` - Configuration for the Vite bundler (enables Tailwind processing and React plugins).
@@ -284,6 +307,7 @@ An exhaustive breakdown of the project architecture and what each specific file 
   - `DemoVideoModal.jsx` - Optimized overlay modal rendering the YouTube iframe to show the project operating in real-mode natively.
 
 ### 🧮 Backend (`/backend`) Node.js REST API + WebSocket Server
+
 - `Dockerfile.backend` - Uses `node:20-slim`. Incredibly complex build that explicitly installs `python3`, `xgboost`, `pandas`, and `libgomp1` dependencies native to the debian kernel so the Node server can spawn python processes.
 - `package.json` - Requires `express`, `mongoose`, `socket.io`, `cors`, and `dotenv`.
 - **`server.js`** - Instantiates the Express HTTP server, establishes the Socket.io WSS mapping, binds to MongoDB via Mongoose, and attaches the router modules.
@@ -295,6 +319,7 @@ An exhaustive breakdown of the project architecture and what each specific file 
 - `models/Alert.js` - Mongoose Schema. Enforces data typing for `source_ip`, `probability`, `threat_type`, and the 15 `features` JSON array.
 
 ### 🐍 Sensor (`/sensor`) Core Machine Learning Sniffer
+
 - `Dockerfile.sensor` - Runs `python:3.11-slim`, installs `pcap` C-libraries for system-level networking, and runs `sensor.py` as a detached daemon.
 - `requirements.txt` - Dictates Python pip limits (`scapy`, `xgboost`, `pandas`, `requests`).
 - **`sensor.py`** - **The core intelligence.** Contains the `PacketFlow` memory objects, binds to the NIC interface (Real Mode) or schedules synthetic drops (Simulate Mode). Evaluates packets every 2,000ms using a multiprocessing thread. Dispatches POST requests safely to the Backend via standard `urllib/requests`.
@@ -302,6 +327,7 @@ An exhaustive breakdown of the project architecture and what each specific file 
 - `interface.txt` - Optional helper text detailing OS-specific ways of discovering network interface names on Windows (`ipconfig`) vs Linux (`ifconfig`).
 
 ### 📖 Machine Learning Pipeline (`/ml`)
+
 - `NIDS.ipynb` - The original Jupyter Notebook Data Science workflow. Documents how the CIC-DDoS2019 dataset was loaded, cleaned, how features were pruned from 86 to 15, and how the XGBoost pipeline was trained.
 - `requirements.txt` - Heavy requirements for notebook usage (`matplotlib`, `seaborn`, `jupyter`).
 - **`model/`**
@@ -314,6 +340,7 @@ An exhaustive breakdown of the project architecture and what each specific file 
 ## 📡 API Reference
 
 ### Internal Traffic (Secured)
+
 Require header `X-Sensor-Secret` to match `.env`.
 | Method | Route | Description |
 |---|---|---|
@@ -321,14 +348,17 @@ Require header `X-Sensor-Secret` to match `.env`.
 | `POST` | `/api/internal/alert` | Sensor posts verified > 80% Threat Vectors. |
 
 ### Public Endpoints (Dashboard)
-| Method | Route | Description |
-|---|---|---|
-| `GET` | `/api/alerts` | Fetches the latest 50 alerts from MongoDB Atlas. |
-| `POST` | `/api/predict/manual` | Spawns python process to evaluate {features}. |
-| `POST` | `/api/test/trigger-attack` | Debug endpoint to inject artificial DDoS logs. |
+
+| Method | Route                      | Description                                      |
+| ------ | -------------------------- | ------------------------------------------------ |
+| `GET`  | `/api/alerts`              | Fetches the latest 50 alerts from MongoDB Atlas. |
+| `POST` | `/api/predict/manual`      | Spawns python process to evaluate {features}.    |
+| `POST` | `/api/test/trigger-attack` | Debug endpoint to inject artificial DDoS logs.   |
 
 ### WebSockets (Socket.io)
+
 Client exclusively listens for `on()` events.
+
 - `ThreatDetected` - Pushed the millisecond an alert is saved to the DB. Triggers the top UI banner and UI charts.
 - `LiveStats` - Pushed every 2000ms directly connecting the sensor's pcap captures visually to the React Dashboard.
 
@@ -337,7 +367,9 @@ Client exclusively listens for `on()` events.
 ## 🔧 Environment Variables
 
 ### Root Repository (`/.env`)
+
 Must be adjacent to `docker-compose.yml`.
+
 ```ini
 MONGO_URI=your_atlas_connection_string
 SENSOR_SECRET=a_random_secure_password
@@ -346,10 +378,12 @@ INTERFACE=eth0 (Used exclusively for Real Mode interface binding)
 ```
 
 ### Specific Services (`/backend/.env` & `/sensor/.env`)
+
 These are automatically injected if passing variables via Docker Compose, but are explicitly required if running components manually via raw Terminal/Command Prompt.
 
 - **Backend:** requires `MONGO_URI`, `SENSOR_SECRET`, and `CLIENT_URL` (usually `http://localhost:5173` to whitelist CORS headers).
 - **Sensor:** requires `BACKEND_URL` (usually `http://localhost:3000`), `SENSOR_SECRET`, `INTERFACE`, and `MY_IP`.
 
 ---
-*Created and optimized for enterprise local-host security monitoring.*
+
+_Created and optimized for enterprise local-host security monitoring._
