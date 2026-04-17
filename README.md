@@ -38,7 +38,7 @@ This project implements a full-stack, enterprise-grade Security Operations Cente
 
 ### Key Features
 
-- 🧠 **99.85% Accurate ML:** Utilizes a highly optimized XGBoost Binary Classifier trained on the CIC-DDoS2019 dataset (evaluating **421,959** cleansed network flows — 327,391 malicious DDoS patterns and 94,568 benign samples).
+- 🧠 **99.85% Accurate ML:** Utilizes a highly optimized XGBoost Binary Classifier trained on the CIC-DDoS2019 dataset (evaluating **421,959** cleansed network flows — 327,39 malicious DDoS patterns and 94,568 benign samples).
 - ⚡ **Real-Time Detection:** Employs a 2-second sliding window via Python's Scapy to capture live interface packets with near-zero latency.
 - 🖥️ **Live SOC Dashboard:** A modern, responsive React 19 interface using WebSockets (Socket.io) to instantly push Threat Alerts and Live Analytics to the analyst's screen.
 - 🔄 **Dual Operation Modes:** Run the sensor in Live Packet Sniffing (`real` mode) or generate synthetic ML flows for testing (`simulate` mode).
