@@ -1,0 +1,71 @@
+# ============================================================
+# Docker Compose - Orchestrates all 3 services
+# ============================================================
+
+services:
+
+  # ── Backend (Node.js) ─────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.backend
+    container_name: nids-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=${MONGO_URI}
+      - SENSOR_SECRET=${SENSOR_SECRET}
+      - CLIENT_URL=http://localhost:5173
+      # Tells alert.js to use python3 instead of Windows .venv path
+      - PYTHON_PATH=python3
+    networks:
+      - nids-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health',(r)=>{if(r.statusCode!==200)throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+
+  # ── Frontend (React) ──────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.frontend
+      args:
+        # Baked into the static bundle at build time so REST calls
+        # and Socket.io both reach the backend from the browser
+        VITE_API_URL: http://localhost:3000
+    container_name: nids-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - nids-network
+    restart: unless-stopped
+
+  # ── Sensor (Python) ───────────────────────────────────────
+  sensor:
+    build:
+      context: .
+      dockerfile: sensor/Dockerfile.sensor
+    container_name: nids-sensor
+    environment:
+      - BACKEND_URL=http://backend:3000
+      - SENSOR_SECRET=${SENSOR_SECRET}
+      - INTERFACE=${INTERFACE:-eth0}
+      - MY_IP=${MY_IP}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - nids-network
+    restart: unless-stopped
+
+networks:
+  nids-network:
+    driver: bridge

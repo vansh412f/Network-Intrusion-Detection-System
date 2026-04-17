@@ -1,0 +1,55 @@
+# ============================================================
+# Backend Dockerfile
+# Node.js Express API server + Python for manual ML prediction
+# ============================================================
+
+# ── Stage 1: Build Node.js deps ────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app/backend
+
+COPY backend/package*.json ./
+RUN npm install --production
+COPY backend/ .
+
+# ── Stage 2: Production ─────────────────────────────────────
+# MUST use node:20-slim (Debian/glibc) NOT node:20-alpine (musl).
+# XGBoost, NumPy, pandas pip wheels are manylinux (glibc-compiled)
+# and will fail to install on Alpine Linux.
+FROM node:20-slim
+
+# Install Python 3 + pip + libgomp (OpenMP runtime required by XGBoost)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python ML packages needed by predict_manual.py
+# --break-system-packages required on Debian Bookworm (PEP 668)
+RUN pip3 install --no-cache-dir --break-system-packages \
+    joblib \
+    numpy \
+    pandas \
+    scikit-learn \
+    xgboost
+
+WORKDIR /app/backend
+
+# Copy Node.js app from builder stage
+COPY --from=builder /app/backend ./
+
+# Copy predict_manual.py so alert.js can spawn it.
+# alert.js computes: __dirname(routes/) + ../../sensor/ = /app/sensor/
+COPY sensor/predict_manual.py /app/sensor/predict_manual.py
+
+# Copy ML model artifacts.
+# predict_manual.py computes: SCRIPT_DIR(sensor/) + ../ml/model = /app/ml/model/
+COPY ml/model/ /app/ml/model/
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health',(r)=>{if(r.statusCode!==200)throw new Error(r.statusCode)})"
+
+CMD ["node", "server.js"]

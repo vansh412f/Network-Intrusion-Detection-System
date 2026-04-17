@@ -1,0 +1,51 @@
+# ============================================================
+# NIDS — Global .gitignore
+# Covers root, backend, frontend, sensor, ml
+# ============================================================
+
+# ── Environment / Secrets ─────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Node.js ───────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── Frontend Build ─────────────────────────────────────────
+frontend/dist/
+frontend/dist-ssr/
+
+# ── Python ────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ── ML Artifacts (Dataset only) ──────────────────────────
+ml/data/
+
+# ── Editor & OS ───────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Docker ────────────────────────────────────────────────
+.dockerignore

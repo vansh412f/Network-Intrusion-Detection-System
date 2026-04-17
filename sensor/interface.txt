@@ -1,0 +1,29 @@
+to check active interfaces
+
+python -c "from scapy.all import show_interfaces; show_interfaces()"
+
+
+python -c "
+from scapy.all import get_if_list, get_if_addr
+
+interfaces = [
+    'Realtek PCIe GbE Family Controller',
+    'Intel(R) Wi-Fi 6E AX211 160MHz',
+    'Software Loopback Interface 1',
+    'VirtualBox Host-Only Ethernet Adapter'
+]
+
+print('Checking IP addresses on each interface...')
+print('=' * 60)
+
+for iface in interfaces:
+    try:
+        ip = get_if_addr(iface)
+        print(f'  {iface}')
+        print(f'  IP: {ip}')
+        print()
+    except Exception as e:
+        print(f'  {iface}')
+        print(f'  Error: {e}')
+        print()
+"

@@ -1,0 +1,32 @@
+# ============================================================
+# Sensor Dockerfile
+# Python Scapy packet sniffer + XGBoost inference
+# ============================================================
+
+FROM python:3.11-slim
+
+WORKDIR /app/sensor
+
+# Install system dependencies for Scapy
+RUN apt-get update && apt-get install -y \
+    libpcap-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY sensor/requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy sensor code
+COPY sensor/ .
+
+# Copy ML model
+COPY ml/model/ ../ml/model/
+
+# .env will be passed at runtime
+ENV PYTHONUNBUFFERED=1
+
+# Run sensor in simulate mode
+CMD ["python", "sensor.py", "--mode", "simulate"]

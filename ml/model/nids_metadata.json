@@ -1,0 +1,81 @@
+{
+  "model_info": {
+    "type": "XGBClassifier",
+    "accuracy_percent": 99.85,
+    "labels": {
+      "0": "BENIGN",
+      "1": "MALICIOUS"
+    },
+    "total_input_columns": 16,
+    "classification_threshold": 0.5
+  },
+  "numeric_features": [
+    "Bwd Packets/s",
+    "Flow Bytes/s",
+    "Flow Duration",
+    "Flow IAT Max",
+    "Flow IAT Mean",
+    "Flow IAT Std",
+    "Flow Packets/s",
+    "Fwd Act Data Packets",
+    "Fwd Packet Length Max",
+    "Fwd Packet Length Min",
+    "Fwd Packets Length Total",
+    "Fwd Packets/s",
+    "Packet Length Max",
+    "Total Backward Packets"
+  ],
+  "categorical_features": {
+    "ACK Flag Count": {
+      "encoding": "OneHotEncoder",
+      "categories": [
+        "0",
+        "1"
+      ],
+      "output_columns": [
+        "ACK Flag Count_0",
+        "ACK Flag Count_1"
+      ],
+      "position_in_model_input": [
+        14,
+        15
+      ]
+    }
+  },
+  "final_column_order": [
+    "Bwd Packets/s",
+    "Flow Bytes/s",
+    "Flow Duration",
+    "Flow IAT Max",
+    "Flow IAT Mean",
+    "Flow IAT Std",
+    "Flow Packets/s",
+    "Fwd Act Data Packets",
+    "Fwd Packet Length Max",
+    "Fwd Packet Length Min",
+    "Fwd Packets Length Total",
+    "Fwd Packets/s",
+    "Packet Length Max",
+    "Total Backward Packets",
+    "ACK Flag Count_0",
+    "ACK Flag Count_1"
+  ],
+  "feature_dtypes": {
+    "Bwd Packets/s": "float32",
+    "Flow Bytes/s": "float32",
+    "Flow Duration": "int32",
+    "Flow IAT Max": "float32",
+    "Flow IAT Mean": "float32",
+    "Flow IAT Std": "float32",
+    "Flow Packets/s": "float32",
+    "Fwd Act Data Packets": "int16",
+    "Fwd Packet Length Max": "float32",
+    "Fwd Packet Length Min": "float32",
+    "Fwd Packets Length Total": "float32",
+    "Fwd Packets/s": "float32",
+    "Packet Length Max": "float32",
+    "Total Backward Packets": "int16",
+    "ACK Flag Count_0": "int64",
+    "ACK Flag Count_1": "int64"
+  }
+}
