@@ -31,8 +31,9 @@ export function TrafficGraph({ liveStats, latestPackets }) {
       </div>
 
       {liveStats.length === 0 ? (
-        <div className="h-48 flex items-center justify-center">
+        <div className="h-48 flex flex-col items-center justify-center gap-1">
           <p className="text-slate-500 text-sm">Waiting for sensor data...</p>
+          <p className="text-slate-600 text-xs">⏳ Render takes ~60s to wake up — please wait</p>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
