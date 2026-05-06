@@ -15,6 +15,14 @@
 
 </div>
 
+### 🌐 Live Cloud Deployment
+**The project is currently hosted live on the cloud!**
+- **Dashboard (Frontend):** Hosted on [Netlify](https://nids-soc.netlify.app/)
+- **API (Backend):** Hosted as a Docker Web Service on Render
+- **Sensor:** Hosted as a Docker Web Service on Render running continuously in `--mode simulate`.
+
+**👉 View the live dashboard here: [https://nids-soc.netlify.app/](https://nids-soc.netlify.app/)**
+
 ---
 
 ## 📋 Table of Contents
