@@ -79,7 +79,7 @@ graph TD;
     NodeAPI -- "Spawn Inference Process" --> MLModel
 ```
 
-### 🔐 Security & Authentication (`SENSOR_SECRET`)
+## 🔐 Security & Authentication (`SENSOR_SECRET`)
 
 To prevent unauthorized actors from submitting fake threats or performing Denial of Service (DoS) attacks on your backend, the system implements a strict machine-to-machine authentication mechanism using the `SENSOR_SECRET` environment variable.
 
