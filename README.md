@@ -79,6 +79,33 @@ graph TD;
     NodeAPI -- "Spawn Inference Process" --> MLModel
 ```
 
+### 🔐 Security & Authentication (`SENSOR_SECRET`)
+
+To prevent unauthorized actors from submitting fake threats or performing Denial of Service (DoS) attacks on your backend, the system implements a strict machine-to-machine authentication mechanism using the `SENSOR_SECRET` environment variable.
+
+- **The Sender (Python Sensor):** When the sensor detects a threat, it packages the `SENSOR_SECRET` into a custom HTTP header (`X-Sensor-Secret`) before sending the REST POST request.
+  ```python
+  # sensor/sensor.py
+  SENSOR_SECRET = os.getenv("SENSOR_SECRET", "default_secret")
+  
+  headers = {
+      "Content-Type": "application/json",
+      "X-Sensor-Secret": SENSOR_SECRET
+  }
+  requests.post(url, json=alert_data, headers=headers)
+  ```
+- **The Receiver (Node.js Backend):** The backend acts as a gatekeeper. Before processing any incoming data, it verifies that the incoming `X-Sensor-Secret` header exactly matches its own `SENSOR_SECRET` environment variable. 
+  ```javascript
+  // backend/routes/alert.js
+  const sensorSecret = req.headers['x-sensor-secret'];
+  
+  if (sensorSecret !== process.env.SENSOR_SECRET) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  // If matched, continue to save the alert to the database...
+  ```
+- **The Result:** If a hacker discovers your backend URL and attempts to inject fake data, they will lack the secret key. The backend immediately drops their request (returning `401 Unauthorized`), ensuring your database and dashboard remain secure and uncompromised.
+
 ---
 
 ## 🧠 Machine Learning Model
