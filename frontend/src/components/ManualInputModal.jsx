@@ -329,7 +329,7 @@ export function ManualInputModal({ isOpen, onClose, onSubmit }) {
                   setErrors({})
                   setWarnings({})
                 }}
-                className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 
+                className="h-8 px-3 bg-red-600/20 hover:bg-red-600/30 
                            text-red-400 text-xs rounded-lg transition-colors"
               >
                 🚨 DDoS
@@ -340,47 +340,35 @@ export function ManualInputModal({ isOpen, onClose, onSubmit }) {
                   setErrors({})
                   setWarnings({})
                 }}
-                className="px-3 py-1.5 bg-green-600/20 hover:bg-green-600/30 
+                className="h-8 px-3 bg-green-600/20 hover:bg-green-600/30 
                            text-green-400 text-xs rounded-lg transition-colors"
               >
                 ✅ Benign
               </button>
               <button
                 onClick={handleReset}
-                className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 
+                title="Reset to DDoS defaults"
+                className="h-8 px-3 bg-slate-700 hover:bg-slate-600 
                            text-slate-300 text-xs rounded-lg transition-colors"
               >
-                ↺ Reset
+                <span className="sm:hidden">↺</span>
+                <span className="hidden sm:inline">↺ Reset</span>
               </button>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={onClose}
-                className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 
-                           text-white text-sm rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={loading || Object.values(errors).some(Boolean)}
-                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 
-                           text-white text-sm rounded-lg transition-colors
-                           disabled:opacity-50 disabled:cursor-not-allowed
-                           flex items-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <span className="animate-spin">⏳</span>
-                    Running...
-                  </>
-                ) : (
-                  <>
-                    🚀 Run Prediction
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || Object.values(errors).some(Boolean)}
+              className="h-8 px-4 bg-blue-600 hover:bg-blue-700 
+                         text-white text-sm rounded-lg transition-colors
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         flex items-center gap-2"
+            >
+              {loading ? (
+                <><span className="animate-spin">⏳</span>Running...</>
+              ) : (
+                <>🚀 Run Prediction</>
+              )}
+            </button>
           </div>
 
         </div>

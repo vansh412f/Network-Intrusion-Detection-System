@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 
 // Custom hook for Socket.io + REST data
@@ -38,6 +38,20 @@ function App() {
   // Local UI state
   const [showManualInput, setShowManualInput] = useState(false)
   const [showDemoVideo, setShowDemoVideo] = useState(false)
+
+  // ── Wake up Render Sensor on page load ────────────────────────────────────
+  // Render free tier spins down services after 15 mins of inactivity.
+  // Pinging the sensor URL on mount ensures it wakes up when someone visits
+  // the dashboard, so simulated traffic starts flowing quickly.
+  useEffect(() => {
+    const sensorUrl = import.meta.env.VITE_SENSOR_URL
+    if (sensorUrl) {
+      console.log('[App] Waking up Render sensor at:', sensorUrl)
+      fetch(sensorUrl, { mode: 'no-cors' }).catch(() => {
+        // Silently ignore — we just want to trigger the wake-up, not read the response
+      })
+    }
+  }, [])
 
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -92,10 +106,10 @@ function App() {
       <AlertBanner latestAlert={latestAlert} />
 
       {/* ── Main Content ───────────────────────────────────────────────────── */}
-      <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
 
         {/* Row 1: Graphs */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <TrafficGraph
             liveStats={liveStats}
             latestPackets={latestPackets}
@@ -104,7 +118,7 @@ function App() {
         </div>
 
         {/* Row 2: Log Panels */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <SensorLog
             sensorMode={sensorMode || 'simulate'}
             liveStats={liveStats}
