@@ -29,4 +29,4 @@ COPY ml/model/ ../ml/model/
 ENV PYTHONUNBUFFERED=1
 
 # Run sensor in simulate mode
-CMD ["python", "sensor.py", "--mode", "simulate"]
+CMD ["sh", "-c", "python sensor.py --mode simulate & python -m http.server ${PORT:-10000}"]
