@@ -1,31 +1,13 @@
 """
-================================================================================
-NIDS Sensor — Network Intrusion Detection System Sensor Module
-================================================================================
-
 Purpose:
     Real-time network traffic monitoring and threat detection using XGBoost ML.
     
 Modes:
     --mode real      → Sniffs live network packets using Scapy
     --mode simulate  → Generates fake traffic for demo purposes
-    
-Features:
-    - Real-time packet capture and analysis
-    - 15-feature extraction from network flows
-    - XGBoost binary classification (BENIGN vs MALICIOUS)
-    - 80% confidence threshold for alerts
-    - HTTP POST to Node.js backend for alert storage
-    
-Author: [Your Name]
-Dataset: CIC-DDoS2019
-Model Accuracy: 99.85%
 ================================================================================
 """
 
-# ══════════════════════════════════════════════════════════════════════════════
-# IMPORTS
-# ══════════════════════════════════════════════════════════════════════════════
 import sys
 import os
 import time
@@ -42,11 +24,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ══════════════════════════════════════════════════════════════════════════════
-# CONFIGURATION
-# ══════════════════════════════════════════════════════════════════════════════
 
-# ── File Paths ────────────────────────────────────────────────────────────────
+# File Paths 
 SENSOR_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR  = os.path.join(SENSOR_DIR, "..", "ml", "model")
 
@@ -54,12 +33,13 @@ MODEL_PATH    = os.path.join(MODEL_DIR, "nids_model.pkl")
 ENCODER_PATH  = os.path.join(MODEL_DIR, "nids_encoder.pkl")
 METADATA_PATH = os.path.join(MODEL_DIR, "nids_metadata.json")
 
-# ── Network Settings ──────────────────────────────────────────────────────────
+# Network Settings 
 
-INTERFACE = os.getenv("INTERFACE")
+INTERFACE = os.getenv("INTERFACE")     
 MY_IP     = os.getenv("MY_IP")
 
 # Validate required settings
+
 if not INTERFACE or not MY_IP:
     print("=" * 60)
     print("❌ ERROR: Missing network configuration!")
@@ -71,17 +51,19 @@ if not INTERFACE or not MY_IP:
     print("=" * 60)
     sys.exit(1)
 
-# ── Detection Settings ────────────────────────────────────────────────────────
+# Detection Settings 
 WINDOW_SECONDS   = 2      # Time window for aggregating packets (seconds)
 ALERT_THRESHOLD  = 0.80   # Minimum ML confidence to trigger alert (0-1)
 MIN_PACKETS      = 10     # Minimum packets in flow to analyze (prevents false positives)
 
-# ── Backend API ───────────────────────────────────────────────────────────────
+# Backend API 
 BACKEND_URL    = os.getenv("BACKEND_URL", "http://localhost:3000")
 SENSOR_SECRET  = os.getenv("SENSOR_SECRET", "default_secret")
 ALERT_ENDPOINT = f"{BACKEND_URL}/api/internal/alert"
 STATS_ENDPOINT = f"{BACKEND_URL}/api/internal/stats"
-# ── Simulation Data (for --mode simulate) ────────────────────────────────────
+
+#  Simulation Data (for --mode simulate)
+
 BENIGN_IPS = [
     "142.250.80.46",   # Google
     "13.69.116.109",   # Microsoft Azure
@@ -102,11 +84,6 @@ ATTACKER_IPS = [
     "103.149.28.195",
 ]
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# COMMAND LINE ARGUMENT PARSING
-# ══════════════════════════════════════════════════════════════════════════════
-
 parser = argparse.ArgumentParser(
     description='NIDS Sensor — Network Intrusion Detection System',
     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -124,11 +101,6 @@ parser.add_argument(
 )
 args = parser.parse_args()
 SENSOR_MODE = args.mode
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# UTILITY FUNCTIONS
-# ══════════════════════════════════════════════════════════════════════════════
 
 def log(message, level="INFO"):
     """
@@ -150,9 +122,7 @@ def log(message, level="INFO"):
     print(f"[{timestamp}] {icon}  {message}")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
 # ML MODEL LOADING AND VERIFICATION
-# ══════════════════════════════════════════════════════════════════════════════
 
 def load_ml_artifacts():
     """
@@ -255,9 +225,7 @@ def verify_model(artifacts):
     return True
 
 
-# ══════════════════════════════════════════════════════════════════════════════
 # SIMULATION MODE — FAKE TRAFFIC GENERATION
-# ══════════════════════════════════════════════════════════════════════════════
 
 def generate_benign_features():
     """
@@ -373,7 +341,7 @@ def send_stats(window_number, total_packets, total_flows):
     try:
         requests.post(STATS_ENDPOINT, json=payload, headers=headers, timeout=2)
     except Exception:
-        pass  # Non-critical, silently ignore failures
+        pass 
 
 
 def run_simulation_loop():
@@ -440,11 +408,10 @@ def run_simulation_loop():
             log(f"  Next auto-attack in {next_attack_in} seconds", "DEBUG")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
 # REAL MODE — LIVE PACKET CAPTURE AND ANALYSIS
-# ══════════════════════════════════════════════════════════════════════════════
 
 # Global packet storage (keyed by source IP)
+
 packet_store = defaultdict(list)
 
 
@@ -578,9 +545,7 @@ def run_window_loop():
             predict_and_alert(source_ip, features, ARTIFACTS)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
 # FEATURE EXTRACTION
-# ══════════════════════════════════════════════════════════════════════════════
 
 def calculate_features(source_ip, packets):
     """
@@ -605,14 +570,14 @@ def calculate_features(source_ip, packets):
     all_sorted = sorted(packets, key=lambda p: p['timestamp'])
     all_timestamps = [p['timestamp'] for p in all_sorted]
 
-    # ── Flow Duration ─────────────────────────────────────────────────────────
+    # Flow Duration 
     flow_duration_sec = all_timestamps[-1] - all_timestamps[0]
     flow_duration_us = int(flow_duration_sec * 1_000_000)
     
     if flow_duration_sec == 0:
-        flow_duration_sec = 0.000001  # Prevent division by zero
+        flow_duration_sec = 0.000001  
 
-    # ── Inter-Arrival Times ───────────────────────────────────────────────────
+    # Inter-Arrival Times 
     iats = [all_timestamps[i] - all_timestamps[i-1] 
             for i in range(1, len(all_timestamps))]
     iats_us = [iat * 1_000_000 for iat in iats]
@@ -624,21 +589,21 @@ def calculate_features(source_ip, packets):
     flow_iat_mean = float(np.mean(iats_us))
     flow_iat_std = float(np.std(iats_us)) if len(iats_us) > 1 else 0.0
 
-    # ── Packet Counts ─────────────────────────────────────────────────────────
+    # Packet Counts 
     total_fwd_packets = len(fwd_packets)
     total_bwd_packets = len(bwd_packets)
     total_packets = len(packets)
 
-    # ── Packets Per Second ────────────────────────────────────────────────────
+    # Packets Per Second 
     fwd_packets_per_s = total_fwd_packets / flow_duration_sec
     bwd_packets_per_s = total_bwd_packets / flow_duration_sec
     flow_packets_per_s = total_packets / flow_duration_sec
 
-    # ── Bytes Per Second ──────────────────────────────────────────────────────
+    # Bytes Per Second 
     total_bytes = sum(p['length'] for p in packets)
     flow_bytes_s = total_bytes / flow_duration_sec
 
-    # ── Forward Packet Length Features ────────────────────────────────────────
+    # Forward Packet Length Features 
     fwd_lengths = [p['payload_len'] for p in fwd_packets]
 
     if len(fwd_lengths) == 0:
@@ -650,14 +615,14 @@ def calculate_features(source_ip, packets):
         fwd_pkt_len_max = float(max(fwd_lengths))
         fwd_pkts_len_total = float(sum(fwd_lengths))
 
-    # ── Overall Packet Length Max ─────────────────────────────────────────────
+    # Overall Packet Length Max 
     all_lengths = [p['payload_len'] for p in packets]
     pkt_len_max = float(max(all_lengths)) if all_lengths else 0.0
 
-    # ── Forward Active Data Packets ───────────────────────────────────────────
+    # Forward Active Data Packets 
     fwd_act_data_packets = sum(1 for p in fwd_packets if p['has_data'])
 
-    # ── ACK Flag Count ────────────────────────────────────────────────────────
+    # ACK Flag Count 
     ack_flag_count = sum(1 for p in packets if p['has_ack'])
     ack_flag_str = '1' if ack_flag_count > 0 else '0'
 
@@ -679,10 +644,7 @@ def calculate_features(source_ip, packets):
         "ACK Flag Count":           ack_flag_str
     }
 
-
-# ══════════════════════════════════════════════════════════════════════════════
 # ML PREDICTION AND ALERTING
-# ══════════════════════════════════════════════════════════════════════════════
 
 def build_model_input(features, artifacts):
     """
@@ -699,7 +661,7 @@ def build_model_input(features, artifacts):
     ack_value = features.pop("ACK Flag Count")
     numeric_df = pd.DataFrame([features])
 
-    # Encode ACK flag (categorical → one-hot)
+    # Encode ACK flag (categorical - one-hot)
     ack_df = pd.DataFrame([[ack_value]], columns=['ACK Flag Count'])
     ack_encoded = np.array(artifacts['encoder'].transform(ack_df))
     ack_encoded_df = pd.DataFrame(
@@ -793,9 +755,7 @@ def send_alert(source_ip, probability, features):
         log(f"  ⚠️  Alert failed: {e}", "DEBUG")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# MAIN EXECUTION
-# ══════════════════════════════════════════════════════════════════════════════
+# MAIN 
 
 if __name__ == "__main__":
     log("=" * 60)
