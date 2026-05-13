@@ -1,10 +1,8 @@
-# ============================================================
 # Docker Compose - Orchestrates all 3 services
-# ============================================================
 
 services:
 
-  # ── Backend (Node.js) ─────────────────────────────────────
+  # Backend (Node.js)
   backend:
     build:
       context: .
@@ -29,7 +27,7 @@ services:
       start_period: 10s
       retries: 3
 
-  # ── Frontend (React) ──────────────────────────────────────
+  # Frontend (React)
   frontend:
     build:
       context: .
@@ -48,7 +46,7 @@ services:
       - nids-network
     restart: unless-stopped
 
-  # ── Sensor (Python) ───────────────────────────────────────
+  # Sensor (Python)
   sensor:
     build:
       context: .
