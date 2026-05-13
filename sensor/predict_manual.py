@@ -1,9 +1,4 @@
-#!/usr/bin/env python3
 """
-================================================================================
-NIDS Manual Prediction Script
-================================================================================
-
 Purpose:
     Standalone ML inference script for manual feature input from dashboard.
     Receives 15 network features via stdin, runs XGBoost prediction, outputs JSON.
@@ -12,11 +7,6 @@ Usage:
     Called by Node.js backend via child_process.spawn()
     Input:  JSON object with 15 features (via stdin)
     Output: JSON prediction result (via stdout)
-
-Author: [Your Name]
-Model: XGBoost Binary Classifier (BENIGN vs MALICIOUS)
-Threshold: 80% confidence for MALICIOUS classification
-================================================================================
 """
 
 import os
@@ -26,10 +16,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-
-# ══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
-# ══════════════════════════════════════════════════════════════════════════════
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR  = os.path.join(SCRIPT_DIR, "..", "ml", "model")
@@ -40,10 +27,7 @@ METADATA_PATH = os.path.join(MODEL_DIR, "nids_metadata.json")
 
 ALERT_THRESHOLD = 0.80  # Must match sensor.py threshold
 
-
-# ══════════════════════════════════════════════════════════════════════════════
 # ML MODEL FUNCTIONS
-# ══════════════════════════════════════════════════════════════════════════════
 
 def load_artifacts():
     """
@@ -148,10 +132,6 @@ def predict(features):
         "is_threat": is_threat
     }
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# MAIN EXECUTION
-# ══════════════════════════════════════════════════════════════════════════════
 
 def main():
     """
