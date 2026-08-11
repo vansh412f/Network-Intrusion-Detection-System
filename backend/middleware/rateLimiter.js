@@ -28,7 +28,7 @@ const authLoginLimiter = rateLimit({
 
 const authRegisterLimiter = rateLimit({
   windowMs:        60 * 60 * 1000,
-  max:             5,
+  max:             2,
   standardHeaders: true,
   legacyHeaders:   false,
   handler:         rateLimitHandler,
