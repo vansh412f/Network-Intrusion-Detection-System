@@ -90,6 +90,19 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // ── Google Login ─────────────────────────────────────────────────────────
+  const googleLogin = useCallback(async (credential) => {
+    try {
+      const res = await api.post('/api/auth/google', { credential })
+      if (res.data.success) {
+        setUser(res.data.user)
+        return res.data.user
+      }
+    } catch (err) {
+      throw err.response?.data?.message || 'Google authentication failed. Please try again.'
+    }
+  }, [])
+
   // ── Register ─────────────────────────────────────────────────────────────
   const register = useCallback(async (name, email, password) => {
     try {
@@ -104,6 +117,7 @@ export function AuthProvider({ children }) {
     user,
     loading,
     login,
+    googleLogin,
     logout,
     register,
     isAuthenticated: user !== null
