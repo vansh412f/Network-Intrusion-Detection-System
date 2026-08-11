@@ -8,6 +8,9 @@ const { authLoginLimiter, authRegisterLimiter } = require('../middleware/rateLim
 const { registerSchema, loginSchema, updateProfileSchema } = require('../schemas/alertSchemas')
 const { sendVerificationEmail }       = require('../services/emailService')
 const logger                          = require('../logger')
+const { OAuth2Client }                = require('google-auth-library')
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 const cookieOptions = {
   httpOnly: true,
@@ -78,6 +81,56 @@ router.post('/login', authLoginLimiter, async (req, res) => {
   } catch (err) {
     logger.error(`❌ [Auth] Login failed: ${err.message}`)
     return res.status(500).json({ success: false, message: 'Internal server error' })
+  }
+})
+
+router.post('/google', async (req, res) => {
+  const { credential } = req.body
+  if (!credential) return res.status(400).json({ success: false, message: 'No Google credential provided' })
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    })
+    
+    const payload = ticket.getPayload()
+    const { email, name, email_verified } = payload
+
+    if (!email_verified) {
+      return res.status(401).json({ success: false, message: 'Google account is not verified' })
+    }
+
+    let user = await User.findOne({ email })
+
+    if (!user) {
+      // Create user with a secure random password since they use Google to auth
+      const randomPassword = require('crypto').randomBytes(32).toString('hex')
+      user = await User.create({
+        name,
+        email,
+        password: randomPassword,
+        verified: true // Google already verified them
+      })
+      logger.info(`✅ [Auth] New user registered via Google: ${email} (${user.userId})`)
+    }
+
+    const token = jwt.sign(
+      { id: user._id, userId: user.userId, email: user.email, role: user.role },
+      process.env.JWT_SECRET || 'nids-soc-development-secret',
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    )
+
+    res.cookie('token', token, cookieOptions)
+    logger.info(`✅ [Auth] Google Login: ${email}`)
+
+    return res.status(200).json({
+      success: true,
+      user: { id: user._id, userId: user.userId, name: user.name, email: user.email, role: user.role }
+    })
+  } catch (err) {
+    logger.error(`❌ [Auth] Google Login failed: ${err.message}`)
+    return res.status(500).json({ success: false, message: 'Google authentication failed' })
   }
 })
 
