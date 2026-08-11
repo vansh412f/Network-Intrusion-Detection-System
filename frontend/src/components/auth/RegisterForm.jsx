@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, CheckCircle, UserPlus } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { GoogleLogin } from '@react-oauth/google'
 
 function getPasswordStrength(password) {
   if (!password) return { score: 0, label: '', color: '' }
@@ -21,7 +22,8 @@ function getPasswordStrength(password) {
 }
 
 export function RegisterForm({ addToast }) {
-  const { register } = useAuth()
+  const { register, googleLogin } = useAuth()
+  const navigate = useNavigate()
 
   const [name,         setName]         = useState('')
   const [email,        setEmail]        = useState('')
@@ -46,6 +48,21 @@ export function RegisterForm({ addToast }) {
       setName('')
       setEmail('')
       setPassword('')
+    } catch (err) {
+      setError(err)
+      addToast(err, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('')
+    setSuccess('')
+    setLoading(true)
+    try {
+      await googleLogin(credentialResponse.credential)
+      navigate('/dashboard', { replace: true })
     } catch (err) {
       setError(err)
       addToast(err, 'error')
@@ -122,6 +139,29 @@ export function RegisterForm({ addToast }) {
         >
           Register as a SOC analyst
         </p>
+      </div>
+
+      <div className="mb-6 flex justify-center">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => setError('Google sign up was unsuccessful. Please try again.')}
+          theme="outline"
+          size="large"
+          width="100%"
+          text="signup_with"
+          shape="rectangular"
+        />
+      </div>
+
+      <div className="relative mb-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t" style={{ borderColor: 'var(--color-border-card)' }} />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="px-2" style={{ backgroundColor: 'var(--color-bg-page)', color: 'var(--color-text-muted)' }}>
+            Or continue with email
+          </span>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
