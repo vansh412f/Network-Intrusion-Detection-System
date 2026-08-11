@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { GoogleLogin } from '@react-oauth/google'
 
 export function LoginForm() {
-  const { login } = useAuth()
+  const { login, googleLogin } = useAuth()
   const navigate  = useNavigate()
 
   const [email,        setEmail]        = useState('')
@@ -20,10 +21,21 @@ export function LoginForm() {
 
     try {
       await login(email, password)
-      // Success toast is fired in AuthContext or parent — no toast here
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      // Inline error is sufficient — no addToast on failure
+      setError(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('')
+    setLoading(true)
+    try {
+      await googleLogin(credentialResponse.credential)
+      navigate('/dashboard', { replace: true })
+    } catch (err) {
       setError(err)
     } finally {
       setLoading(false)
@@ -54,6 +66,29 @@ export function LoginForm() {
         >
           Sign in to your analyst account
         </p>
+      </div>
+
+      <div className="mb-6 flex justify-center">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => setError('Google sign in was unsuccessful. Please try again.')}
+          theme="outline"
+          size="large"
+          width="100%"
+          text="signin_with"
+          shape="rectangular"
+        />
+      </div>
+
+      <div className="relative mb-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t" style={{ borderColor: 'var(--color-border-card)' }} />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="px-2" style={{ backgroundColor: 'var(--color-bg-page)', color: 'var(--color-text-muted)' }}>
+            Or continue with email
+          </span>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
