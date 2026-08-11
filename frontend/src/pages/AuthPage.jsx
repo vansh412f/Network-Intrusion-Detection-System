@@ -62,8 +62,7 @@ export default function AuthPage({ mode, addToast }) {
                 className="mt-2 max-w-xs leading-relaxed"
                 style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}
               >
-                Real-time network intrusion detection powered by XGBoost ML
-                with 99.85% accuracy on CIC-DDoS2019 dataset.
+                Welcome to the Command Center. Defend the perimeter. Access your personalized dashboard, configure smart alert cooldowns, and dive into live network analytics.
               </p>
             </div>
 
