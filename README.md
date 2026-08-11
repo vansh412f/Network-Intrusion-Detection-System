@@ -56,7 +56,7 @@ The NIDS SOC Dashboard is a comprehensive, full-stack cybersecurity application 
 
 ### The Technology Stack
 - **Frontend:** React 19, Vite, React Router v6, TailwindCSS v4, Framer Motion, Recharts, React Simple Maps, @react-oauth/google.
-- **Backend:** Node.js, Express 5, Socket.io, Mongoose (MongoDB Atlas), JWT, Nodemailer, bcryptjs, google-auth-library.
+- **Backend:** Node.js, Express 5, Socket.io, Mongoose (MongoDB Atlas), JWT, Google Apps Script, bcryptjs, google-auth-library.
 - **Sensor/ML Engine:** Python 3.11+, Scapy, XGBoost, Pandas, Numpy, Joblib.
 
 ---
@@ -175,13 +175,13 @@ We use Mongoose for ODM.
 
 ### 4.5 Child Process Orchestration (Manual Prediction)
 When a user submits a manual prediction via the UI, the Node backend must ask Python for the answer.
-- It uses `child_process.spawn()` to execute `sensor/predict_manual.py`.
+- It uses a persistent background daemon running `sensor/predict_manual.py` to stream predictions efficiently.
 - It pipes the 15 features as a JSON string to the python script's `stdin`.
 - It reads the result from `stdout`.
 - *Fallback Mechanism:* If the python script hangs (e.g., infinite loop, bad input), a 15-second `setTimeout` kills the child process via `python.kill()` and returns a `504 Gateway Timeout` to the frontend, preventing the Express worker thread from hanging permanently.
 
 ### 4.6 Email Service Integration
-The backend uses `nodemailer` connected to a Gmail SMTP server.
+The backend uses Google Apps Script to send emails via the Gmail API.
 - **Verification:** When a user registers, they receive a JWT-signed verification link. They cannot log in until `verified` is true.
 - **Threat Alerts:** If a `CRITICAL` alert fires, the system queries the DB for all verified users whose `min_severity_for_email` allows it, and fires off an HTML-formatted email.
 - **Unsubscribe Logic:** Every email contains a 1-click unsubscribe link (signed via JWT). Clicking it sets the user's email preference to `NONE` without requiring them to log in.
@@ -235,7 +235,7 @@ Every complex system requires compromises. Here is a summary of the explicit tra
 
 ### 6.2 Rate Limiting the Analysts
 - **Demo Abuse Protection:** We limit IP blocking to 3 actions per 30 minutes. Why? Because in a public demo environment, malicious users might try to write thousands of entries to the blocklist database, exhausting storage and API limits.
-- **ML CPU Protection:** The `predict_manual.py` script spins up a heavy Python runtime and loads a serialized XGBoost model into RAM. Doing this concurrently 100 times would crash the Node.js server. Thus, manual predictions are heavily rate-limited.
+- **ML CPU Protection:** The `predict_manual.py` script runs as a persistent background daemon managed by Node.js. Predictions are queued and streamed sequentially over standard I/O, allowing for ultra-fast ~10ms execution without spinning up multiple heavy Python runtimes or exhausting memory limits.
 
 ### 6.3 The "Cold Start" Reality
 - The backend is hosted on Render's free tier. If no traffic hits the server for 15 minutes, the instance spins down. 
@@ -446,7 +446,7 @@ The backend acts as the source of truth, enforcing data integrity before it ever
 ### 10.2 REST API Specification
 
 #### Authentication Endpoints (`/api/auth`)
-- **`POST /register`**: Validates via Zod. Creates unverified User. Sends JWT-signed verification email via Nodemailer. Rate-limited to 5 per hour.
+- **`POST /register`**: Validates via Zod. Creates unverified User. Sends JWT-signed verification email via Google Apps Script. Rate-limited to 5 per hour.
 - **`POST /login`**: Validates credentials. Sets `httpOnly` cookie with JWT. Returns User object. Rate-limited to 10 per 15 minutes.
 - **`POST /logout`**: Clears the `token` cookie.
 - **`GET /me`**: Returns the current user profile based on the JWT payload. Requires authentication.
@@ -455,7 +455,7 @@ The backend acts as the source of truth, enforcing data integrity before it ever
 - **`GET /unsubscribe?token=`**: Sets `min_severity_for_email` to `NONE` using a JWT in the URL query, returning an HTML redirect.
 
 #### Alert Endpoints (`/api`)
-- **`POST /internal/alert`**: The sensor ingestion endpoint. Requires `X-Sensor-Secret`. Saves to MongoDB, calculates severity, triggers email dispatch via Nodemailer, and emits `ThreatDetected` to Socket.io.
+- **`POST /internal/alert`**: The sensor ingestion endpoint. Requires `X-Sensor-Secret`. Saves to MongoDB, calculates severity, triggers email dispatch via Google Apps Script, and emits `ThreatDetected` to Socket.io.
 - **`POST /internal/stats`**: Requires `X-Sensor-Secret`. Validates traffic metrics and emits `LiveStats` via Socket.io. Does NOT save to MongoDB (too high volume).
 - **`GET /alerts`**: Fetches the last 500 alerts from MongoDB, stripping the bulky `features` object to reduce payload size.
 
@@ -468,7 +468,7 @@ The backend acts as the source of truth, enforcing data integrity before it ever
 ### 10.3 The Manual Prediction Proxy Route
 - **`POST /predict/manual`**: 
   - Validates all 15 features strictly via Zod. 
-  - Spawns a child process (`spawn(python, [predict_manual.py])`).
+  - Streams JSON to the persistent Python daemon (`predict_manual.py`) and awaits the stdout response.
   - Pipes features into `stdin`.
   - Sets a 15-second `setTimeout` to kill the process if it hangs.
   - Parses JSON from `stdout`.
@@ -734,7 +734,7 @@ Allows testing the XGBoost model remotely via the frontend modal.
     "source_ip": "MANUAL:AB12CD"
   }
   ```
-- **Execution Path:** Express spawns `sensor/predict_manual.py`, passes features via stdin, parses stdout, saves a dummy alert to Mongo, and emits it to Socket.io so the UI map updates visually.
+- **Execution Path:** Express streams features to the persistent `sensor/predict_manual.py` daemon, parses stdout, saves a dummy alert to Mongo, and emits it to Socket.io so the UI map updates visually.
 
 
 ---
@@ -847,7 +847,7 @@ The backend directly saves to MongoDB and emits to Socket.io in a single Node.js
 2. **Decouple the Workers:** 
    - *Worker A (Database Writer)*: Consumes from Kafka and batch-inserts into MongoDB (or Snowflake for cold storage).
    - *Worker B (WebSocket Broadcaster)*: Consumes from Kafka and broadcasts to UI clients.
-   - *Worker C (Email/Alerting)*: Consumes from Kafka and processes `nodemailer` requests asynchronously.
+   - *Worker C (Email/Alerting)*: Consumes from Kafka and processes email dispatch requests asynchronously.
 This completely prevents a database slowdown from impacting the real-time WebSocket UI.
 
 ### 19.3 Scaling the Frontend UI
@@ -899,7 +899,7 @@ To tie it all together, let us trace a single packet from the wire to the analys
 5. **[2015ms] Inference:** The Pandas DataFrame is passed to XGBoost. The model evaluates the decision trees and outputs `probability = 0.99`.
 6. **[2020ms] HTTP POST:** The sensor packages a JSON payload and sends it to `/api/internal/alert` with the `X-Sensor-Secret`.
 7. **[2040ms] Backend Ingestion:** Express validates the payload via Zod, calculates `severity = CRITICAL`, and writes to MongoDB.
-8. **[2060ms] Email Dispatch:** Node.js realizes it is `CRITICAL`. It fires an async request to Nodemailer.
+8. **[2060ms] Email Dispatch:** Node.js realizes it is `CRITICAL`. It fires an async request to Google Apps Script.
 9. **[2065ms] Broadcast:** `io.emit('ThreatDetected', payload)` fires, pushing data over the active WebSocket connections.
 10. **[2100ms] React Ingestion:** `useSocket.js` receives the event. It triggers `geoUtils.js` which immediately hashes the IP to find coordinates.
 11. **[2105ms] React Context Update:** The `alerts` array is updated. 

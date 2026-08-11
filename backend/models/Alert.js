@@ -16,7 +16,7 @@ const AlertSchema = new mongoose.Schema(
     threat_type: {
       type:    String,
       default: 'DDoS',
-      enum:    ['DDoS', 'Manual-Test']
+      enum:    ['DDoS', 'MANUAL']
     },
     features: {
       type:    mongoose.Schema.Types.Mixed,

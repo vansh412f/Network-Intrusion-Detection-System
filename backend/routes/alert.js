@@ -2,6 +2,7 @@ const express  = require('express')
 const router   = express.Router()
 const path     = require('path')
 const { spawn } = require('child_process')
+const readline = require('readline')
 
 const Alert       = require('../models/Alert')
 const User        = require('../models/User')
@@ -11,6 +12,85 @@ const validateSecret          = require('../middleware/validateSecret')
 const { manualPredictLimiter } = require('../middleware/rateLimiter')
 const { internalAlertSchema, manualPredictSchema, statsSchema } = require('../schemas/alertSchemas')
 const { sendThreatAlert } = require('../services/emailService')
+
+class AsyncQueue {
+  constructor() {
+    this.queue = [];
+    this.isProcessing = false;
+  }
+  async add(task) {
+    return new Promise((resolve, reject) => {
+      this.queue.push(async () => {
+        try { resolve(await task()); } 
+        catch (err) { reject(err); }
+      });
+      this.process();
+    });
+  }
+  async process() {
+    if (this.isProcessing || this.queue.length === 0) return;
+    this.isProcessing = true;
+    const task = this.queue.shift();
+    await task();
+    this.isProcessing = false;
+    this.process();
+  }
+}
+
+const predictQueue = new AsyncQueue();
+
+let persistentPython = null;
+let currentResolve = null;
+let currentReject  = null;
+
+function getPersistentPython() {
+  if (persistentPython && !persistentPython.killed) {
+    return persistentPython;
+  }
+
+  const pythonScript = path.join(__dirname, '..', '..', 'sensor', 'predict_manual.py');
+  const pythonPath   = process.env.PYTHON_PATH ||
+    (process.platform === 'win32'
+      ? path.join(__dirname, '..', '..', '.venv', 'Scripts', 'python.exe')
+      : path.join(__dirname, '..', '..', '.venv', 'bin', 'python'));
+
+  persistentPython = spawn(pythonPath, [pythonScript]);
+  const rl = readline.createInterface({ input: persistentPython.stdout });
+
+  rl.on('line', (line) => {
+    try {
+      const parsed = JSON.parse(line.trim());
+      if (parsed.status === 'ready') {
+        logger.info('✅ [Manual] Python daemon ready');
+        return;
+      }
+      if (currentResolve) {
+        if (parsed.error) currentReject(new Error(parsed.error));
+        else currentResolve(parsed);
+      }
+    } catch (err) {
+      if (currentReject) currentReject(new Error(`Parse error: ${line}`));
+    }
+  });
+
+  persistentPython.stderr.on('data', (data) => {
+    logger.warn(`⚠️  [Manual Python] ${data.toString().trim()}`);
+  });
+
+  persistentPython.on('error', (err) => {
+    logger.error(`❌ [Manual] Persistent Python daemon error: ${err.message}`);
+    persistentPython = null;
+    if (currentReject) { currentReject(err); currentReject = null; currentResolve = null; }
+  });
+
+  persistentPython.on('exit', (code) => {
+    logger.warn(`⚠️  [Manual] Persistent Python daemon exited with code ${code}`);
+    persistentPython = null;
+    if (currentReject) { currentReject(new Error(`Python exited with code ${code}`)); currentReject = null; currentResolve = null; }
+  });
+
+  return persistentPython;
+}
 
 const MAX_STORED_ALERTS = 500
 
@@ -161,77 +241,63 @@ router.post('/predict/manual', requireAuth, manualPredictLimiter, async (req, re
   const userId = req.user?.userId || req.user?.email || 'unknown'
   logger.info(`🔍 [Manual] Prediction requested by ${userId}`)
 
-  const pythonScript = path.join(__dirname, '..', '..', 'sensor', 'predict_manual.py')
-  const pythonPath   = process.env.PYTHON_PATH ||
-    (process.platform === 'win32'
-      ? path.join(__dirname, '..', '..', '.venv', 'Scripts', 'python.exe')
-      : path.join(__dirname, '..', '..', '.venv', 'bin', 'python'))
+  try {
+    const prediction = await predictQueue.add(() => {
+      return new Promise((resolve, reject) => {
+        const python = getPersistentPython()
+        
+        const timeout = setTimeout(() => {
+          python.kill()
+          persistentPython = null
+          const err = new Error('ML prediction timed out')
+          if (currentReject) currentReject(err)
+        }, 15000)
 
-  const python = spawn(pythonPath, [pythonScript])
-  let result_str = ''
-  let error_str  = ''
+        currentResolve = (data) => {
+          clearTimeout(timeout)
+          currentResolve = null
+          currentReject = null
+          resolve(data)
+        }
 
-  const timeout = setTimeout(() => {
-    python.kill()
-    logger.warn('⚠️  [Manual] Python process timed out')
-    if (!res.headersSent) {
-      return res.status(504).json({ success: false, message: 'ML prediction timed out' })
-    }
-  }, 15000)
+        currentReject = (err) => {
+          clearTimeout(timeout)
+          currentResolve = null
+          currentReject = null
+          reject(err)
+        }
 
-  python.stdin.write(JSON.stringify(features))
-  python.stdin.end()
+        python.stdin.write(JSON.stringify(features) + '\n')
+      })
+    })
 
-  python.stdout.on('data', (data) => { result_str += data.toString() })
-  python.stderr.on('data', (data) => { error_str  += data.toString() })
+    logger.info(`✅ [Manual] Result: ${prediction.label} | ${prediction.probability}%`)
 
-  python.on('close', async (code) => {
-    clearTimeout(timeout)
-    if (res.headersSent) return
-
-    if (code !== 0) {
-      logger.error(`❌ [Manual] Python exited ${code}: ${error_str}`)
-      return res.status(500).json({ success: false, message: 'ML prediction failed', error: error_str })
-    }
-
-    try {
-      const prediction = JSON.parse(result_str.trim())
-      logger.info(`✅ [Manual] Result: ${prediction.label} | ${prediction.probability}%`)
-
-      if (prediction.is_threat) {
-        const io = req.app.get('io')
-        await saveAndEmitAlert(io, {
-          source_ip:   `MANUAL:${userId}`,
-          probability: prediction.probability,
-          threat_type: 'Manual-Test',
-          features
-        })
-      }
-
-      return res.status(200).json({
-        success:     true,
-        prediction:  prediction.prediction,
+    if (prediction.is_threat) {
+      const io = req.app.get('io')
+      await saveAndEmitAlert(io, {
+        source_ip:   'MANUAL',
         probability: prediction.probability,
-        label:       prediction.label,
-        saved:       prediction.is_threat
+        threat_type: 'MANUAL',
+        features
       })
-    } catch (parseErr) {
-      logger.error(`❌ [Manual] Parse failed: ${result_str}`)
-      return res.status(500).json({ success: false, message: 'Failed to parse prediction result' })
     }
-  })
 
-  python.on('error', (err) => {
-    clearTimeout(timeout)
-    logger.error(`❌ [Manual] Spawn failed: ${err.message}`)
-    if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to start Python process',
-        error:   err.message
-      })
+    return res.status(200).json({
+      success:     true,
+      prediction:  prediction.prediction,
+      probability: prediction.probability,
+      label:       prediction.label,
+      saved:       prediction.is_threat
+    })
+
+  } catch (err) {
+    logger.error(`❌ [Manual] Prediction failed: ${err.message}`)
+    if (err.message.includes('timed out')) {
+      return res.status(504).json({ success: false, message: 'ML prediction timed out. Please try again.' })
     }
-  })
+    return res.status(500).json({ success: false, message: 'ML prediction failed', error: err.message })
+  }
 })
 
 module.exports = router

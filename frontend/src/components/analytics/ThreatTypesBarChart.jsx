@@ -61,7 +61,7 @@ export function ThreatTypesBarChart({ data, hasData }) {
               {data.map(entry => (
                 <Cell
                   key={entry.name}
-                  fill={entry.name === 'Manual-Test' ? '#8b5cf6' : '#ef4444'}
+                  fill={entry.name === 'MANUAL' ? '#8b5cf6' : '#ef4444'}
                 />
               ))}
             </Bar>

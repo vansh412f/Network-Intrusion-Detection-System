@@ -41,7 +41,7 @@ function ConfidenceCell({ value }) {
 
 function ThreatRowInner({ alert, onBlockIP, isAuthenticated, direction = 1, index = 0, skipAnim = false }) {
   const isBlocked = alert.blocked
-  const isManual  = alert.threat_type === 'Manual-Test'
+  const isManual  = alert.threat_type === 'MANUAL'
   const ipDisplay = alert.source_ip || 'Unknown'
 
   const lastClickRef = useRef(0)

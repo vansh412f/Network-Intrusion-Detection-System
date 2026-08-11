@@ -96,19 +96,20 @@ def build_model_input(features, encoder, metadata):
     return final_row
 
 
-def predict(features):
+def predict(features, model, encoder, metadata):
     """
     Runs XGBoost prediction on given features.
     Applies 80% confidence threshold for threat classification.
 
     Args:
         features (dict): 15 network flow features
+        model: Pre-loaded XGBoost model
+        encoder: Pre-loaded LabelEncoder
+        metadata (dict): Pre-loaded metadata
 
     Returns:
         dict: Prediction result with label, probability, and threat status
     """
-    model, encoder, metadata = load_artifacts()
-
     model_input    = build_model_input(features, encoder, metadata)
     raw_prediction = int(model.predict(model_input)[0])
     probability    = float(model.predict_proba(model_input)[0][1])
@@ -129,31 +130,42 @@ def predict(features):
 
 def main():
     """
-    Main entry point.
-    Reads JSON from stdin, runs prediction, outputs JSON to stdout.
-
-    Exit Codes:
-        0: Success
-        1: JSON parse error or prediction failure
+    Main entry point for persistent background execution.
+    Loads artifacts once, then continuously reads JSON lines from stdin,
+    runs prediction, and outputs JSON lines to stdout.
     """
     try:
-        input_data = sys.stdin.read()
-        features   = json.loads(input_data)
-        result     = predict(features)
-        print(json.dumps(result))
-        sys.exit(0)
-
-    except json.JSONDecodeError as e:
-        print(json.dumps({
-            "error": f"Invalid JSON input: {str(e)}"
-        }), file=sys.stderr)
-        sys.exit(1)
-
+        model, encoder, metadata = load_artifacts()
     except Exception as e:
-        print(json.dumps({
-            "error": f"Prediction failed: {str(e)}"
-        }), file=sys.stderr)
+        print(json.dumps({"error": f"Failed to load artifacts: {str(e)}"}), file=sys.stderr)
         sys.exit(1)
+
+    # Signal to Node.js that the model is loaded and ready
+    print(json.dumps({"status": "ready"}))
+    sys.stdout.flush()
+
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+            
+        try:
+            features = json.loads(line)
+            result   = predict(features, model, encoder, metadata)
+            print(json.dumps(result))
+            sys.stdout.flush()
+
+        except json.JSONDecodeError as e:
+            print(json.dumps({
+                "error": f"Invalid JSON input: {str(e)}"
+            }))
+            sys.stdout.flush()
+
+        except Exception as e:
+            print(json.dumps({
+                "error": f"Prediction failed: {str(e)}"
+            }))
+            sys.stdout.flush()
 
 
 if __name__ == "__main__":

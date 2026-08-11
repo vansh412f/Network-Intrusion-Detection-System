@@ -134,7 +134,7 @@ function ThreatTableInner({ alerts, onBlockIP, isAuthenticated }) {
           >
             <option value="ALL">All Types</option>
             <option value="DDoS">DDoS</option>
-            <option value="Manual-Test">Manual Test</option>
+            <option value="MANUAL">Manual Test</option>
           </select>
 
           <button

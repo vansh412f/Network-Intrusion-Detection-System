@@ -299,7 +299,7 @@ NIDS Sensor (real mode on public NIC)
               <Card className="p-5 space-y-3">
                 <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-text-secondary)' }}>
                   The manual prediction UI allows analysts to inject 15 arbitrary flow features into the pipeline. 
-                  The backend spins up a <code>predict_manual.py</code> subprocess, piping the JSON features via <code>stdin</code> and reading the prediction from <code>stdout</code>.
+                  The backend manages a persistent <code>predict_manual.py</code> daemon, streaming the JSON features via <code>stdin</code> and reading the prediction from <code>stdout</code>.
                 </p>
                 <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-text-secondary)' }}>
                   To assist testing, the UI offers 5 calibrated templates matching specific confidence ranges: Normal (0-20%), Low (80-84%), Medium (85-93%), High (94-98%), and Critical (99-100%).

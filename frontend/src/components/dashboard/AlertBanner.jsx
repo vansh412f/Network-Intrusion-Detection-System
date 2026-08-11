@@ -139,7 +139,7 @@ export function AlertBanner({ latestAlert }) {
                     {severity}
                   </Badge>
                   <Badge
-                    variant={currentAlert.threat_type === 'Manual-Test' ? 'manual' : 'ddos'}
+                    variant={currentAlert.threat_type === 'MANUAL' ? 'manual' : 'ddos'}
                     size="xs"
                   >
                     {currentAlert.threat_type || 'DDoS'}
