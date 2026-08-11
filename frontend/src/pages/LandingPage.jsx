@@ -324,7 +324,7 @@ export default function LandingPage() {
                 className="mt-3 text-sm leading-relaxed"
                 style={{ color: 'var(--color-text-muted)' }}
               >
-                Three seamless stages from raw packet capture to analyst threat alerts.
+                We bridge the gap between network hardware and the browser using optimized WebSocket streams, processing millions of packets into structured SOC alerts.
               </p>
             </motion.div>
           </div>
