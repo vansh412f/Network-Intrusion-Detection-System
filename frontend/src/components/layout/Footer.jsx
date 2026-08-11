@@ -45,9 +45,12 @@ export function Footer() {
           >
             NIDS SOC Dashboard
           </span>
-          <span style={{ color: 'var(--color-text-muted)', fontSize: '12px', opacity: 0.4 }}>·</span>
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
             Powered by XGBoost ML
+          </span>
+          <span style={{ color: 'var(--color-text-muted)', fontSize: '12px', opacity: 0.4 }}>·</span>
+          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+            Sub-100ms Latency
           </span>
         </div>
 

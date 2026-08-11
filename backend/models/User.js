@@ -41,7 +41,7 @@ const UserSchema = new mongoose.Schema(
     },
     email_notifications: {
       type:    Boolean,
-      default: true
+      default: false  // Enabled only after email is verified
     },
     min_severity_for_email: {
       type:    String,

@@ -12,7 +12,9 @@ const logger                          = require('../logger')
 const cookieOptions = {
   httpOnly: true,
   secure:   process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
+  // SameSite=none required for cross-domain cookies (Netlify → Render)
+  // Must be 'strict' in development since we're on the same origin
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
   maxAge:   7 * 24 * 60 * 60 * 1000
 }
 

@@ -42,8 +42,8 @@ const FEATURES = [
   },
   {
     icon:   Mail,
-    title:  'Email Alerts',
-    desc:   'Severity-based email notifications with configurable thresholds per analyst.',
+    title:  'Smart Email Alerts',
+    desc:   'Severity-based notifications with a 15-minute smart cooldown to prevent inbox flooding.',
     accent: '#a78bfa'
   },
   {

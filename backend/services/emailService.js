@@ -1,35 +1,41 @@
-const nodemailer = require('nodemailer')
-const jwt        = require('jsonwebtoken')
-const logger     = require('../logger')
+const axios = require('axios')
+const jwt   = require('jsonwebtoken')
+const logger = require('../logger')
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com', port: 465, secure: true,
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  debug: process.env.NODE_ENV !== 'production',
-  logger: process.env.NODE_ENV !== 'production'
-})
+// The Google Apps Script Web App URL
+const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL
 
 async function verifyTransporter() {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error('EMAIL_USER and EMAIL_PASS must be set in .env to send emails')
+  if (!GOOGLE_SCRIPT_URL) {
+    throw new Error('GOOGLE_SCRIPT_URL must be set to send emails via Apps Script')
   }
-  await transporter.verify()
-  logger.info('✅ [Email] SMTP transporter verified')
+  logger.info('✅ [Email] Google Apps Script URL configured')
 }
 
 function getBackendUrl() {
-  return process.env.BACKEND_URL || (process.env.NODE_ENV === 'production' ? 'https://network-intrusion-detection-system-7mh6.onrender.com' : `http://localhost:${process.env.PORT || 3000}`)
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://network-intrusion-detection-system-7mh6.onrender.com'
+  }
+  return `http://localhost:${process.env.PORT || 3000}`
 }
 
 const SEVERITY_COLORS = { LOW: '#eab308', MEDIUM: '#f97316', HIGH: '#ef4444', CRITICAL: '#b91c1c' }
 const SEVERITY_EMOJI  = { LOW: '🟡', MEDIUM: '🟠', HIGH: '🔴', CRITICAL: '🚨' }
 
+// Track last email sent time per user to prevent spam and hitting 100/day limits
+const lastEmailSentAt = new Map()
+const ALERT_COOLDOWN_MS = 15 * 60 * 1000 // 15 minutes cooldown per user
+
 function generateUnsubscribeToken(userId) {
-  return jwt.sign({ id: userId, purpose: 'unsubscribe' }, process.env.JWT_SECRET || 'nids-soc-development-secret', { expiresIn: '30d' })
+  return jwt.sign(
+    { id: userId, purpose: 'unsubscribe' },
+    process.env.JWT_SECRET || 'nids-soc-development-secret',
+    { expiresIn: '30d' }
+  )
 }
 
 async function sendThreatAlert(alert, recipients) {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || !recipients?.length) return
+  if (!GOOGLE_SCRIPT_URL || !recipients?.length) return
 
   const severity      = alert.severity || 'LOW'
   const color         = SEVERITY_COLORS[severity]
@@ -39,6 +45,13 @@ async function sendThreatAlert(alert, recipients) {
   const subject       = `${emoji} NIDS ${severity} Alert — ${alert.threat_type} Detected`
 
   const sendPromises = recipients.map(async (user) => {
+    // RATE LIMITING: Check if user received an email in the last 15 minutes
+    const lastSent = lastEmailSentAt.get(user._id.toString())
+    if (lastSent && (Date.now() - lastSent < ALERT_COOLDOWN_MS)) {
+      logger.info(`⏳ [Email] Skipped alert for ${user.email} (Cooldown active)`)
+      return
+    }
+
     const unsubscribeToken = generateUnsubscribeToken(user._id)
     const unsubscribeLink  = `${backendUrl}/api/auth/unsubscribe?token=${unsubscribeToken}`
 
@@ -70,25 +83,38 @@ async function sendThreatAlert(alert, recipients) {
             <a href="${unsubscribeLink}" style="display:inline-block;background-color:transparent;color:#94a3b8;text-decoration:none;padding:10px 24px;border-radius:8px;font-size:12px;border:1px solid #334155;">Unsubscribe from Alerts</a>
           </div>
           <div style="text-align:center;border-top:1px solid #1e293b;padding-top:16px;">
+            <p style="color:#64748b;font-size:12px;margin:0 0 8px;">⏱️ <strong>Smart Cooldown Active:</strong> To prevent inbox flooding during heavy attacks, you will receive maximum one alert every 15 minutes.</p>
             <p style="color:#475569;font-size:11px;margin:0;">NIDS SOC Dashboard · Powered by XGBoost · CIC-DDoS2019</p>
           </div>
         </div>
       </body></html>`
 
     try {
-      await transporter.sendMail({ from: process.env.EMAIL_FROM || process.env.EMAIL_USER, to: user.email, subject, html })
-      logger.info(`✅ [Email] Alert sent to ${user.email}`)
+      await axios.post(GOOGLE_SCRIPT_URL, {
+        to: user.email,
+        subject,
+        html
+      }, {
+        headers: { 'Content-Type': 'application/json' }
+      })
+      lastEmailSentAt.set(user._id.toString(), Date.now()) // Update cooldown timer
+      logger.info(`✅ [Email] Alert sent to ${user.email} via Google Apps Script`)
     } catch (err) {
       logger.warn(`⚠️  [Email] Failed to send to ${user.email}: ${err.message}`)
     }
   })
+
   await Promise.allSettled(sendPromises)
 }
 
 async function sendVerificationEmail(email, userId) {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return
+  if (!GOOGLE_SCRIPT_URL) return
 
-  const token = jwt.sign({ id: userId, purpose: 'verify-email' }, process.env.JWT_SECRET || 'nids-soc-development-secret', { expiresIn: '24h' })
+  const token = jwt.sign(
+    { id: userId, purpose: 'verify-email' },
+    process.env.JWT_SECRET || 'nids-soc-development-secret',
+    { expiresIn: '24h' }
+  )
   const verifyLink    = `${getBackendUrl()}/api/auth/verify?token=${token}`
   const dashboardLink = process.env.CLIENT_URL_PROD || process.env.CLIENT_URL_DEV
 
@@ -113,8 +139,14 @@ async function sendVerificationEmail(email, userId) {
     </body></html>`
 
   try {
-    await transporter.sendMail({ from: process.env.EMAIL_FROM || process.env.EMAIL_USER, to: email, subject: '🛡️ Verify your NIDS SOC Dashboard email', html })
-    logger.info(`✅ [Email] Verification email sent to ${email}`)
+    await axios.post(GOOGLE_SCRIPT_URL, {
+      to: email,
+      subject: '🛡️ Verify your NIDS SOC Dashboard email',
+      html
+    }, {
+      headers: { 'Content-Type': 'application/json' }
+    })
+    logger.info(`✅ [Email] Verification email sent to ${email} via Google Apps Script`)
   } catch (err) {
     logger.warn(`⚠️  [Email] Failed to send verification email: ${err.message}`)
   }

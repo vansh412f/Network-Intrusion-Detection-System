@@ -286,6 +286,16 @@ export default function ProfilePage({ addToast }) {
                 <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                   {selectedSeverityDesc}
                 </p>
+
+                {/* Smart Cooldown Note */}
+                <div className="mt-4 rounded-lg bg-blue-500/10 border border-blue-500/20 p-3">
+                  <p className="text-xs flex items-start gap-2" style={{ color: '#93c5fd' }}>
+                    <span className="text-base leading-none">⏱️</span>
+                    <span>
+                      <strong>Smart Cooldown Active:</strong> To prevent your inbox from being flooded during a heavy attack (like a DDoS simulation), our system strictly limits alerts to a maximum of <strong>1 email per 15 minutes</strong>.
+                    </span>
+                  </p>
+                </div>
               </div>
             )}
 
