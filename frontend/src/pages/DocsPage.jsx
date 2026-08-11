@@ -280,7 +280,10 @@ NIDS Sensor (real mode on public NIC)
               <SectionTitle icon={Mail} title="Email Alerts" subtitle="Severity-based notification system" />
               <Card className="p-5 space-y-3">
                 <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-text-secondary)' }}>
-                  Threat alerts are dispatched via Nodemailer using Gmail SMTP. Only <strong>verified</strong> users receive emails. Analysts can customize their threshold to receive alerts (e.g., <code>HIGH</code>, <code>CRITICAL</code>) or <code>NONE</code>.
+                  Threat alerts and registration verifications are dispatched using a custom <strong>Google Apps Script Web API</strong>. This architecture completely bypasses strict SMTP blocks on free-tier hosting providers (like Render).
+                </p>
+                <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-text-secondary)' }}>
+                  To prevent abuse and exhaustion of the 100 emails/day Google quota, the system enforces a strict <strong>15-minute rate limit per user</strong> for all email notifications. Analysts can customize their threshold to receive alerts (e.g., <code>HIGH</code>, <code>CRITICAL</code>) or <code>NONE</code>.
                 </p>
                 <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-text-secondary)' }}>
                   Every email contains a secure, one-click <strong>unsubscribe link</strong> with a signed JWT that instantly sets their threshold to <code>NONE</code> without requiring login.
@@ -315,6 +318,66 @@ NIDS Sensor (real mode on public NIC)
                     <CodeBlock>{code}</CodeBlock>
                   </div>
                 ))}
+              </Card>
+            </section>
+
+            <section id="docker" className="scroll-mt-24 space-y-4">
+              <SectionTitle icon={Layers} title="Docker Guide" subtitle="Pulling and running official images" />
+              <Card className="p-5 space-y-4">
+                <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-text-secondary)' }}>
+                  Both the Node.js backend and Python sensor are containerized and published to Docker Hub automatically by the CI/CD pipeline on every push to main.
+                </p>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Pull directly from Docker Hub</h3>
+                  <CodeBlock>{`# Pull the backend image\ndocker pull vansh412f/nids-backend:latest\n\n# Pull the Python sensor image\ndocker pull vansh412f/nids-sensor:latest`}</CodeBlock>
+                </div>
+                <div className="space-y-2 mt-4">
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Run locally with Docker Compose</h3>
+                  <p style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--color-text-secondary)' }}>We provide a unified <code>docker-compose.yml</code> at the root of the repository that spins up the Frontend, Backend, and Sensor simultaneously.</p>
+                  <CodeBlock>{`docker-compose up --build`}</CodeBlock>
+                </div>
+              </Card>
+            </section>
+
+            <section id="kubernetes" className="scroll-mt-24 space-y-4">
+              <SectionTitle icon={Globe} title="Kubernetes (K8s)" subtitle="Production-grade orchestration manifests" />
+              <Card className="p-5 space-y-4">
+                <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-text-secondary)' }}>
+                  While the live demo runs on Netlify and Render, this project is fully architected for enterprise Kubernetes deployments (AWS EKS, Google GKE). The <code>k8s/</code> directory contains all required manifests.
+                </p>
+                <ul className="space-y-2.5">
+                  {[
+                    'Deployments: Manages ReplicaSets for the backend and frontend.',
+                    'Services: ClusterIP for backend microservice routing.',
+                    'Ingress: Uses nginx-ingress-controller with TLS (cert-manager) and WebSocket support annotations.',
+                    'ConfigMaps & Secrets: Injects environment variables securely into pods.'
+                  ].map(item => (
+                    <li key={item} className="flex gap-2.5" style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                      <ChevronRight size={14} strokeWidth={2} style={{ color: 'var(--color-primary-blue)', flexShrink: 0, marginTop: '2px' }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <CodeBlock>{`# Apply all Kubernetes manifests instantly\nkubectl apply -f k8s/`}</CodeBlock>
+              </Card>
+            </section>
+
+            <section id="cicd" className="scroll-mt-24 space-y-4">
+              <SectionTitle icon={Zap} title="CI/CD Pipeline" subtitle="GitHub Actions workflow" />
+              <Card className="p-5 space-y-3">
+                <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-text-secondary)' }}>
+                  A zero-downtime deployment pipeline is defined in <code>.github/workflows/cd.yml</code>. It enforces strict Continuous Integration and Delivery standards.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2 mt-2">
+                  <div className="rounded-lg border p-4" style={{ borderColor: 'var(--color-border-card)' }}>
+                    <h3 className="text-sm font-semibold mb-2" style={{ color: '#3b82f6' }}>Continuous Integration (CI)</h3>
+                    <p style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--color-text-secondary)' }}>Triggers on every push. It builds the Docker images natively on the runner to ensure no compilation errors exist before deployment.</p>
+                  </div>
+                  <div className="rounded-lg border p-4" style={{ borderColor: 'var(--color-border-card)' }}>
+                    <h3 className="text-sm font-semibold mb-2" style={{ color: '#10b981' }}>Continuous Delivery (CD)</h3>
+                    <p style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--color-text-secondary)' }}>If the build succeeds, it authenticates with Docker Hub using repository secrets and pushes the newly tagged <code>:latest</code> images for public consumption.</p>
+                  </div>
+                </div>
               </Card>
             </section>
 
