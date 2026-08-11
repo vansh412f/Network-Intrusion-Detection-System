@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://via.placeholder.com/120x120/0f172a/3b82f6?text=%F0%9F%9B%A1%EF%B8%8F" alt="NIDS SOC Logo" width="120" />
+  <img src="./frontend/public/favicon.svg" alt="NIDS SOC Logo" width="120" />
   
   # Network Intrusion Detection System (NIDS) & SOC Dashboard
   
@@ -15,8 +15,32 @@
 
 <br />
 
-> **IMPORTANT: AI CONTEXT DOCUMENT**
-> This `README.md` is not a standard project summary. It is a living, deep technical architectural document. It is designed so that any AI assistant or senior engineer reading this file will instantly understand *every* underlying mechanism, constraint, state management decision, and trade-off in the system. **Do not summarize this document**—read it in its entirety to understand how the components interplay.
+## Table of Contents
+- [1. System Overview & Philosophy](#1-system-overview-philosophy)
+- [2. System Architecture & Data Flow](#2-system-architecture-data-flow)
+- [3. Frontend Deep Dive (React 19 + Vite)](#3-frontend-deep-dive-react-19-vite)
+- [4. Backend Deep Dive (Node.js + Express 5)](#4-backend-deep-dive-nodejs-express-5)
+- [5. Sensor & ML Engine (Python + Scapy + XGBoost)](#5-sensor-ml-engine-python-scapy-xgboost)
+- [6. Security, Fallbacks & Tradeoffs Summary](#6-security-fallbacks-tradeoffs-summary)
+- [7. AI Context Guide (Instructions for AI Agents)](#7-ai-context-guide-instructions-for-ai-agents)
+- [8. Deployment & Local Setup](#8-deployment-local-setup)
+- [9. File-by-File Component Architecture (Frontend)](#9-filebyfile-component-architecture-frontend)
+- [10. Complete Database Schema & API Specification](#10-complete-database-schema-api-specification)
+- [11. The Machine Learning Engine (Detailed)](#11-the-machine-learning-engine-detailed)
+- [12. Security Operations Center (SOC) Playbook](#12-security-operations-center-soc-playbook)
+- [13. System Resilience and Failure States](#13-system-resilience-and-failure-states)
+- [14. Extending the Application (Developer Guide)](#14-extending-the-application-developer-guide)
+- [15. Conclusion](#15-conclusion)
+- [16. Comprehensive API Reference Guide](#16-comprehensive-api-reference-guide)
+- [17. Comprehensive Data Dictionary](#17-comprehensive-data-dictionary)
+- [18. Troubleshooting & Operational Runbook](#18-troubleshooting-operational-runbook)
+- [19. Architectural Scaling Plan (Future Roadmap)](#19-architectural-scaling-plan-future-roadmap)
+- [20. Code Style and Contribution Guidelines](#20-code-style-and-contribution-guidelines)
+- [21. Final System State Machine Review](#21-final-system-state-machine-review)
+- [22. UI Design System & Theming Engine](#22-ui-design-system-theming-engine)
+- [23. Continuous Integration & Deployment (CI/CD)](#23-continuous-integration-deployment-cicd)
+- [24. Database Backup & Disaster Recovery](#24-database-backup-disaster-recovery)
+- [25. Final Note for AI Assistants (Context Initialization)](#25-final-note-for-ai-assistants-context-initialization)
 
 ---
 
