@@ -31,8 +31,8 @@ The NIDS SOC Dashboard is a comprehensive, full-stack cybersecurity application 
 4. **Resilience & Fallbacks:** Implement robust rate-limiting, deterministic fallbacks for third-party APIs (like geo-location), and memory-efficient architectures to prevent OOM errors on free-tier hosting (e.g., Render).
 
 ### The Technology Stack
-- **Frontend:** React 19, Vite, React Router v6, TailwindCSS v4, Framer Motion, Recharts, React Simple Maps.
-- **Backend:** Node.js, Express 5, Socket.io, Mongoose (MongoDB Atlas), JWT, Nodemailer, bcryptjs.
+- **Frontend:** React 19, Vite, React Router v6, TailwindCSS v4, Framer Motion, Recharts, React Simple Maps, @react-oauth/google.
+- **Backend:** Node.js, Express 5, Socket.io, Mongoose (MongoDB Atlas), JWT, Nodemailer, bcryptjs, google-auth-library.
 - **Sensor/ML Engine:** Python 3.11+, Scapy, XGBoost, Pandas, Numpy, Joblib.
 
 ---
