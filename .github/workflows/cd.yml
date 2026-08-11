@@ -1,0 +1,59 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set short SHA
+        run: echo "SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+        
+      - uses: docker/setup-buildx-action@v3
+      
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: frontend/Dockerfile
+          build-args: VITE_API_URL=https://network-intrusion-detection-system-7mh6.onrender.com
+          tags: |
+            vansh412/nids-frontend:latest
+            vansh412/nids-frontend:${{ env.SHA }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: backend/Dockerfile
+          tags: |
+            vansh412/nids-backend:latest
+            vansh412/nids-backend:${{ env.SHA }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push sensor
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: sensor/Dockerfile
+          tags: |
+            vansh412/nids-sensor:latest
+            vansh412/nids-sensor:${{ env.SHA }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+

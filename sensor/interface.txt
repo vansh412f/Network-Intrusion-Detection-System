@@ -1,18 +1,21 @@
-to check active interfaces
+Finding your network interface and IP for REAL mode
+====================================================
 
+Real mode requires INTERFACE and MY_IP in the root /.env file.
+Run these commands from the sensor/ directory (with your venv active).
+
+
+COMMAND 1 — List all active interfaces
+---------------------------------------
 python -c "from scapy.all import show_interfaces; show_interfaces()"
 
 
+COMMAND 2 — Check IP address on each interface
+-------------------------------------------------
 python -c "
 from scapy.all import get_if_list, get_if_addr
 
-interfaces = [
-    'Realtek PCIe GbE Family Controller',
-    'Intel(R) Wi-Fi 6E AX211 160MHz',
-    'Software Loopback Interface 1',
-    'VirtualBox Host-Only Ethernet Adapter'
-]
-
+interfaces = get_if_list()
 print('Checking IP addresses on each interface...')
 print('=' * 60)
 
@@ -27,3 +30,21 @@ for iface in interfaces:
         print(f'  Error: {e}')
         print()
 "
+
+
+Set in root /.env (example)
+-----------------------------
+INTERFACE=Intel(R) Wi-Fi 6E AX211 160MHz
+MY_IP=192.168.31.42
+
+Use the interface name exactly as shown by Scapy.
+Pick the IP that is your machine's active IPv4 (not 127.0.0.1).
+
+
+Run the sensor
+--------------
+# Simulate mode (default — no INTERFACE/MY_IP needed):
+python sensor.py --mode simulate
+
+# Real mode (Administrator/root required):
+python sensor.py --mode real

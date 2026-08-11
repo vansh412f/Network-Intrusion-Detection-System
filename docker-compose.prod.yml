@@ -1,0 +1,52 @@
+networks:
+  nids-network:
+    driver: bridge
+
+services:
+
+  # ── Backend ────────────────────────────────────────────────────────────────
+  backend:
+    image: vansh412/nids-backend:latest
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./.env.prod
+    networks:
+      - nids-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ── Frontend ───────────────────────────────────────────────────────────────
+  frontend:
+    image: vansh412/nids-frontend:latest
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - nids-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Sensor ─────────────────────────────────────────────────────────────────
+  sensor:
+    image: vansh412/nids-sensor:latest
+    env_file:
+      - ./.env.prod
+    environment:
+      - BACKEND_URL=http://backend:3000
+    depends_on:
+      - backend
+    networks:
+      - nids-network
+    restart: unless-stopped
+

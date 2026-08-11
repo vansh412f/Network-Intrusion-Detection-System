@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nids-config
+  namespace: nids
+data:
+  NODE_ENV: production
+  PORT: "3000"
+  CLIENT_URL_PROD: https://nids-soc.netlify.app
+  BACKEND_URL: http://backend-service:3000

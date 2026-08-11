@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sensor
+  namespace: nids
+  labels:
+    app: nids-sensor
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: nids-sensor
+  template:
+    metadata:
+      labels:
+        app: nids-sensor
+    spec:
+      containers:
+        - name: sensor
+          image: vansh412/nids-sensor:latest
+          command: ["python", "sensor.py", "--mode", "simulate"]
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+          livenessProbe:
+            exec:
+              command: ["python", "-c", "import sys; sys.exit(0)"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          env:
+            - name: BACKEND_URL
+              value: http://backend-service:3000
+            - name: SENSOR_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nids-secret
+                  key: SENSOR_SECRET
