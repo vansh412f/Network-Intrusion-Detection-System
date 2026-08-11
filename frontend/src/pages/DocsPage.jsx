@@ -107,7 +107,7 @@ GET /blocklist/ips   ◄── Blocklist cache ◄──────  Real-time 
                     'JWT stored in httpOnly cookie — not localStorage',
                     'Sensor authenticated via shared secret using timingSafeEqual',
                     'Email verification required before login',
-                    'Max 50 alerts stored — oldest pruned automatically',
+                    'Max 500 alerts stored — oldest pruned automatically',
                     'Geo enrichment via ip-api.com — private IPs skipped',
                     'In-memory blocklist cache synced to MongoDB on startup'
                   ].map(item => (
@@ -256,6 +256,9 @@ NIDS Sensor (real mode on public NIC)
               <Card className="p-5 space-y-3">
                 <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-text-secondary)' }}>
                   Authentication uses <strong>JWT</strong> tokens stored strictly in <strong>httpOnly</strong> cookies to prevent XSS attacks. For security, sessions feature a <strong>5-minute inactivity auto-logout</strong>.
+                </p>
+                <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-text-secondary)' }}>
+                  Users can also sign in with <strong>Google</strong> via OAuth 2.0 — Google-authenticated accounts are auto-verified and bypass the email verification step.
                 </p>
                 <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-text-secondary)' }}>
                   Users must verify their email addresses via a token link before logging in. In the database, users are assigned an anonymous <code>userId</code> (e.g., <code>user_a1b2c3</code>), ensuring that analyst emails are never exposed when attributing actions like IP blocking.

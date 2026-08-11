@@ -29,11 +29,7 @@ export function Footer() {
         backgroundColor: 'var(--color-bg-card)'
       }}
     >
-      <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
-        <p className="text-center" style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: '1.6', maxWidth: '800px', margin: '0 auto' }}>
-          Created as a comprehensive security project to demonstrate the real-world application of machine learning in network defense. Engineered under tight cloud resource constraints to deliver a highly efficient, containerized microservice architecture without compromising on performance.
-        </p>
-      </div>
+
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-4 sm:flex-row sm:px-6">
 
         {/* Left side = Shield icon + NIDS SOC Dashboard · Powered by XGBoost ML */}

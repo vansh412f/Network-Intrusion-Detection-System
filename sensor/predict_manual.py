@@ -15,14 +15,11 @@ import json
 import joblib
 import numpy as np
 import pandas as pd
-from dotenv import load_dotenv
 
 # CONFIGURATION 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR  = os.path.join(SCRIPT_DIR, "..", "ml", "model")
-
-load_dotenv(dotenv_path=os.path.join(SCRIPT_DIR, '..', '.env'))
 
 MODEL_PATH    = os.path.join(MODEL_DIR, "nids_model.pkl")
 ENCODER_PATH  = os.path.join(MODEL_DIR, "nids_encoder.pkl")
