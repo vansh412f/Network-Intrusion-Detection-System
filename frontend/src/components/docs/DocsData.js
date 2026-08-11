@@ -11,7 +11,10 @@ export const SECTIONS = [
   { id: 'blocklist',    label: 'Blocklist',       icon: 'Shield'   },
   { id: 'email',        label: 'Email Alerts',    icon: 'Mail'     },
   { id: 'manual',       label: 'Manual Predict',  icon: 'Terminal' },
-  { id: 'running',      label: 'Running Locally', icon: 'Terminal' }
+  { id: 'running',      label: 'Running Locally', icon: 'Terminal' },
+  { id: 'docker',       label: 'Docker Guide',    icon: 'Layers'   },
+  { id: 'kubernetes',   label: 'Kubernetes',      icon: 'Globe'    },
+  { id: 'cicd',         label: 'CI/CD Pipeline',  icon: 'Zap'      }
 ]
 
 export const API_ROUTES = [
